@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Live Monitoring</title>
+
+<script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<link rel="stylesheet"
+href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+
+<link rel="stylesheet"
+href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+
+<body class="bg-light">
+
+<!-- TOGGLE BUTTON -->
+
+<button class="menu-btn" onclick="toggleSidebar()">☰</button>
+
+<!-- SIDEBAR -->
+
+<div id="sidebar" class="sidebar">
+
+<h3>AI Classroom</h3>
+
+<a href="/dashboard">Dashboard</a>
+<a href="/session">Live Monitoring</a>
+<a href="/download_report">Download Report</a>
+<a href="/">Logout</a>
+
+</div>
+
+<!-- MAIN CONTENT -->
+
+<div class="content">
+
+<div class="container mt-4">
+
+<h2 class="mb-4">Live Classroom Monitoring</h2>
+
+<button class="btn btn-primary mb-4"
+onclick="startSession()">
+Start AI Monitoring
+</button>
+
+<div class="row">
+
+<div class="col-md-4">
+
+<div class="card text-center p-4">
+
+<h5>Current Attention Score</h5>
+
+<h1 id="score">0%</h1>
+
+</div>
+
+</div>
+
+<div class="col-md-8">
+
+<div class="card p-4">
+
+<canvas id="chart"></canvas>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+function toggleSidebar(){
+
+const sidebar = document.getElementById("sidebar")
+const content = document.querySelector(".content")
+const button = document.querySelector(".menu-btn")
+
+sidebar.classList.toggle("active")
+content.classList.toggle("shift")
+button.classList.toggle("shift")
+
+}
+
+var socket = io()
+
+function startSession(){
+socket.emit("start_monitoring")
+}
+
+socket.on("attention_update", function(data){
+
+document.getElementById("score").innerText =
+data.score + "%"
+
+addData(data.score)
+
+})
+
+var ctx = document.getElementById("chart")
+
+var chart = new Chart(ctx, {
+type: "line",
+data: {
+labels: [],
+datasets: [{
+label: "Attention Score",
+data: [],
+borderColor: "#2563eb",
+tension:0.3
+}]
+},
+options:{
+scales:{
+y:{
+min:0,
+max:100
+}
+}
+}
+})
+
+function addData(score){
+
+chart.data.labels.push("t")
+
+chart.data.datasets[0].data.push(score)
+
+chart.update()
+
+}
+
+setInterval(function(){
+socket.emit("request_data")
+},2000)
+
+</script>
+
+</body>
+
+</html>
