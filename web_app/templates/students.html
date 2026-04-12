@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Reports — FocusTrack AI</title>
+    <meta name="description" content="View individual student attention analytics and manage auto-registered faces.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+</head>
+
+<body>
+
+    <!-- ========== TOP NAVBAR ========== -->
+    <nav class="top-navbar">
+        <a href="/dashboard" class="navbar-brand">
+            <span class="brand-dot"></span>
+            FocusTrack AI
+        </a>
+        <div class="navbar-search">
+            <span class="search-icon">🔍</span>
+            <input type="text" placeholder="Search students..." id="navSearchInput">
+        </div>
+        <div class="navbar-links">
+            <a href="/dashboard" id="nav-dashboard">Home</a>
+            <a href="/session" id="nav-session">Live Monitoring</a>
+            <a href="/students" class="active" id="nav-students">Student Reports</a>
+            <a href="/download_report" id="nav-report">Downloads</a>
+            <a href="/" class="navbar-cta" id="nav-logout">Logout</a>
+        </div>
+    </nav>
+
+    <!-- ========== MOBILE SIDEBAR ========== -->
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <button class="menu-btn" onclick="toggleSidebar()" id="menuToggle" aria-label="Toggle navigation menu">☰</button>
+
+    <div id="sidebar" class="sidebar">
+        <h3>🎯 FocusTrack</h3>
+        <p class="sidebar-subtitle">AI Classroom</p>
+        <a href="/dashboard"><span class="nav-icon">📊</span> Dashboard</a>
+        <a href="/session"><span class="nav-icon">📡</span> Live Monitoring</a>
+        <a href="/students" class="active"><span class="nav-icon">🧑‍🎓</span> Student Reports</a>
+        <a href="/download_report"><span class="nav-icon">📥</span> Download Report</a>
+        <div class="sidebar-footer">
+            <a href="/"><span class="nav-icon">🚪</span> Logout</a>
+        </div>
+    </div>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <div class="content">
+
+        <!-- Header Section -->
+        <div class="dashboard-hero" style="padding: 40px; min-height: auto;">
+            <!-- Delicate shapes -->
+            <div class="shape shape-circle animate-float-slow" style="width:20px;height:20px;top:20%;right:10%;"></div>
+            <div class="shape shape-cross" style="top:40%;left:5%;">✕</div>
+
+            <div class="hero-content fade-in-up">
+                <h1 class="hero-title" style="font-size: 36px; margin-bottom: 8px;">Automated Student Reports</h1>
+                <p class="hero-subtitle" style="margin-bottom: 0;">
+                    The AI automatically registers unique faces during live sessions. Click 'Rename' to assign real
+                    names.
+                </p>
+            </div>
+        </div>
+
+        <!-- Student Grid -->
+        <div class="stats-section fade-in-up"" style=" margin-top: 32px;">
+            <div class="stats-grid" id="studentGrid"
+                style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+                <!-- Loading State -->
+                <p class="neutral" style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                    <span class="pulse-dot" style="display:inline-block; margin-right: 8px;"></span> Loading student
+                    data...
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ========== RENAME MODAL ========== -->
+    <div id="renameModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Rename Student</h3>
+            <p class="neutral">Enter the real name for <strong id="modalOriginalName"></strong></p>
+            <input type="text" id="renameInput" placeholder="e.g. John Doe" class="modal-input">
+            <input type="hidden" id="modalStudentId">
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn-primary-dark" onclick="submitRename()">Save Name</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== SCRIPTS ========== -->
+    <script>
+        function toggleSidebar() {
+            const s = document.getElementById("sidebar");
+            const o = document.getElementById("sidebarOverlay");
+            const b = document.querySelector(".menu-btn");
+            if (s && o && b) { s.classList.toggle("active"); o.classList.toggle("active"); b.classList.toggle("shift"); }
+        }
+
+        function loadStudents() {
+            fetch('/api/students')
+                .then(res => res.json())
+                .then(data => {
+                    const grid = document.getElementById("studentGrid");
+                    grid.innerHTML = "";
+
+                    if (data.length === 0) {
+                        grid.innerHTML = `<div class="stat-card" style="grid-column: 1 / -1; text-align:center; padding: 48px;">
+                        <h2 style="margin-bottom: 8px;">No Students Auto-Registered Yet</h2>
+                        <p class="neutral">Start a live monitoring session to let the AI build the dataset.</p>
+                        <a href="/session" style="display:inline-block; margin-top:16px;"><button class="btn-primary-dark">Start Session</button></a>
+                    </div>`;
+                        return;
+                    }
+
+                    data.forEach(student => {
+                        // Determine badge
+                        let badgeClass = "distracted";
+                        let badgeText = "Low Attn";
+                        if (student.avg_score >= 80) { badgeClass = "attentive"; badgeText = "High Attn"; }
+                        else if (student.avg_score >= 50) { badgeClass = "moderate"; badgeText = "Med Attn"; }
+
+                        const card = document.createElement('div');
+                        card.className = "stat-card student-card fade-in-up";
+                        card.innerHTML = `
+                        <div class="student-card-header">
+                            <img src="/static/${student.thumbnail}" class="student-thumb" alt="Face of ${student.label}">
+                            <div class="student-name-box">
+                                <h3>${student.label}</h3>
+                                <p class="neutral" style="font-size:12px;">ID: ${student.id.split('_')[1] || student.id}</p>
+                            </div>
+                        </div>
+                        <div class="student-card-stats">
+                            <div>
+                                <p class="stat-label">Avg Score</p>
+                                <h2>${student.avg_score}%</h2>
+                            </div>
+                            <div>
+                                <p class="stat-label">Time Attentive</p>
+                                <h2 style="font-size:24px;">${student.attentive_percent}%</h2>
+                            </div>
+                        </div>
+                        <div class="student-card-footer">
+                            <span class="stat-detail ${badgeClass}">● ${badgeText}</span>
+                            <div style="display:flex; gap:12px;">
+                                <button class="btn-rename" onclick="deleteStudent('${student.id}', '${student.label.replace(/'/g, "\\'")}')" style="color: #ef4444;" title="Delete Record">🗑️</button>
+                                <button class="btn-rename" onclick="openModal('${student.id}', '${student.label.replace(/'/g, "\\'")}')">Rename ✎</button>
+                            </div>
+                        </div>
+                    `;
+                        grid.appendChild(card);
+                    });
+                })
+                .catch(err => console.error("Error fetching students:", err));
+        }
+
+        // Modal logic
+        const modal = document.getElementById("renameModal");
+        function openModal(id, currentName) {
+            document.getElementById("modalStudentId").value = id;
+            document.getElementById("modalOriginalName").innerText = currentName;
+            document.getElementById("renameInput").value = "";
+            modal.classList.add("active");
+            document.getElementById("renameInput").focus();
+        }
+
+        function closeModal() {
+            modal.classList.remove("active");
+        }
+
+        function submitRename() {
+            const id = document.getElementById("modalStudentId").value;
+            const newName = document.getElementById("renameInput").value.trim();
+
+            if (!newName) return;
+
+            fetch(`/api/student/${id}/rename`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        closeModal();
+                        loadStudents(); // reload grid
+                    }
+                });
+        }
+
+        function deleteStudent(id, name) {
+            if (confirm(`Are you sure you want to completely delete all data and facial records for ${name}? This action cannot be undone.`)) {
+                fetch(`/api/student/${id}`, { method: 'DELETE' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            loadStudents(); // visually remove them from grid
+                        } else {
+                            alert("Error deleting student.");
+                        }
+                    })
+                    .catch(err => console.error(err));
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", loadStudents);
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+venv/
+web_app/venv/
+web_app/classroom_data.db
+web_app/static/thumbnails/
+web_app/session_report.csv
+*.whl
+*.mp4

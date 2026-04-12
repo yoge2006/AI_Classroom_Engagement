@@ -1,150 +1,385 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Monitoring — FocusTrack AI</title>
+    <meta name="description"
+        content="Real-time AI-powered classroom attention monitoring with live engagement scoring and trend charts.">
 
-<title>Live Monitoring</title>
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<link rel="stylesheet"
-href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-
-<link rel="stylesheet"
-href="{{ url_for('static', filename='css/style.css') }}">
-
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
 </head>
 
-<body class="bg-light">
+<body>
 
-<!-- TOGGLE BUTTON -->
+    <!-- ========== TOP NAVBAR ========== -->
 
-<button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <nav class="top-navbar">
 
-<!-- SIDEBAR -->
+        <a href="/dashboard" class="navbar-brand">
+            <span class="brand-dot"></span>
+            FocusTrack AI
+        </a>
 
-<div id="sidebar" class="sidebar">
+        <div class="navbar-search">
+            <span class="search-icon">🔍</span>
+            <input type="text" placeholder="Search sessions..." id="navSearchInput">
+        </div>
 
-<h3>AI Classroom</h3>
+        <div class="navbar-links">
+            <a href="/dashboard" id="nav-dashboard">Home</a>
+            <a href="/session" class="active" id="nav-session">Live Monitoring</a>
+            <a href="/students" id="nav-students">Student Reports</a>
+            <a href="/download_report" id="nav-report">Reports</a>
+            <a href="/" class="navbar-cta" id="nav-logout">Logout</a>
+        </div>
 
-<a href="/dashboard">Dashboard</a>
-<a href="/session">Live Monitoring</a>
-<a href="/download_report">Download Report</a>
-<a href="/">Logout</a>
+    </nav>
 
-</div>
+    <!-- ========== MOBILE SIDEBAR ========== -->
 
-<!-- MAIN CONTENT -->
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-<div class="content">
+    <button class="menu-btn" onclick="toggleSidebar()" id="menuToggle" aria-label="Toggle navigation menu">☰</button>
 
-<div class="container mt-4">
+    <div id="sidebar" class="sidebar">
+        <h3>🎯 FocusTrack</h3>
+        <p class="sidebar-subtitle">AI Classroom</p>
+        <a href="/dashboard"><span class="nav-icon">📊</span> Dashboard</a>
+        <a href="/session" class="active"><span class="nav-icon">📡</span> Live Monitoring</a>
+        <a href="/students"><span class="nav-icon">🧑‍🎓</span> Student Reports</a>
+        <a href="/download_report"><span class="nav-icon">📥</span> Download Report</a>
+        <div class="sidebar-footer">
+            <a href="/"><span class="nav-icon">🚪</span> Logout</a>
+        </div>
+    </div>
 
-<h2 class="mb-4">Live Classroom Monitoring</h2>
+    <!-- ========== MAIN CONTENT ========== -->
 
-<button class="btn btn-primary mb-4"
-onclick="startSession()">
-Start AI Monitoring
-</button>
+    <div class="content">
 
-<div class="row">
+        <!-- Session Hero Banner -->
+        <div class="session-hero">
 
-<div class="col-md-4">
+            <!-- Decorative Floating Shapes -->
+            <div class="shape shape-circle animate-float-slow" style="width:20px;height:20px;top:15%;left:5%;"></div>
+            <div class="shape shape-cross animate-float-medium" style="top:25%;left:2%;">✕</div>
+            <div class="shape shape-dot animate-float-fast" style="top:55%;left:4%;"></div>
+            <div class="shape shape-circle animate-float-medium" style="width:16px;height:16px;bottom:20%;right:10%;">
+            </div>
+            <div class="shape shape-dot animate-float-slow" style="top:15%;right:25%;"></div>
+            <div class="shape shape-line animate-spin-slow" style="top:35%;right:8%;"></div>
+            <div class="shape shape-line animate-spin-slow" style="bottom:30%;right:15%;transform:rotate(45deg);"></div>
+            <div class="shape shape-circle animate-float-fast" style="width:24px;height:24px;top:10%;right:5%;"></div>
 
-<div class="card text-center p-4">
+            <div class="session-hero-content fade-in-up">
+                <div>
+                    <h1 class="session-title">Live Classroom Monitoring</h1>
+                    <p class="session-subtitle">Real-time AI attention tracking — supports multiple students</p>
+                </div>
+                <button class="session-start-btn" onclick="startSession()" id="startMonitoringBtn">
+                    🚀 Start AI Monitoring
+                </button>
+                <button class="session-start-btn" onclick="stopSession()" id="stopMonitoringBtn"
+                    style="display:none; background:#ef4444; margin-left:12px;">
+                    ⏹ Stop Monitoring
+                </button>
+            </div>
 
-<h5>Current Attention Score</h5>
+        </div>
 
-<h1 id="score">0%</h1>
+        <!-- Session Content Grid -->
+        <div class="session-content">
+            <div class="session-grid" style="grid-template-columns: 1fr 2fr;">
 
-</div>
+                <!-- Left Column: Score + Faces + Video Stream -->
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <!-- Horizontal Top Row -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        
+                        <!-- Score Card -->
+                        <div class="score-card fade-in-up fade-in-up-delay-1" style="margin-bottom:0px; display:flex; flex-direction:column; justify-content:center;">
+                            <p class="score-label">Current Attention Score</p>
+                            <h1 id="score" style="margin: 12px 0;">0%</h1>
+                            <div class="score-indicator score-low" id="scoreIndicator">
+                                <span>●</span> Waiting...
+                            </div>
+                        </div>
 
-</div>
+                        <!-- Faces Detected Card -->
+                        <div class="score-card fade-in-up fade-in-up-delay-2" style="margin-bottom:0px; display:flex; flex-direction:column; justify-content:center;">
+                            <p class="score-label">Faces Detected</p>
+                            <h1 id="sessionFaceCount"
+                                style="font-family:'Outfit',sans-serif;font-size:52px;font-weight:900;color:#111;line-height:1;margin: 12px 0;">
+                                0</h1>
+                            <div class="score-indicator score-medium" id="faceIndicator">
+                                <span>👥</span> None
+                            </div>
+                        </div>
+                    </div>
 
-<div class="col-md-8">
+                    <!-- Video Feed Card -->
+                    <div class="chart-card fade-in-up fade-in-up-delay-2">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Live Camera Feed</h3>
+                            <span class="chart-badge" style="background:#e2e8f0; color:#64748b;" id="camStatus">Offline</span>
+                        </div>
+                        <img id="liveVideo" src="" style="width:100%; border-radius: 8px; display: none; margin-top: 16px; border: 2px solid #e2e8f0;" />
+                        <div id="videoPlaceholder" style="width: 100%; aspect-ratio: 16/9; background: #f8fafc; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-weight: 500; font-size: 14px; margin-top: 16px; border: 2px dashed #cbd5e1;">
+                            🎥 Waiting for session to start...
+                        </div>
+                    </div>
+                </div>
 
-<div class="card p-4">
+                <!-- Chart Card -->
+                <div class="chart-card fade-in-up fade-in-up-delay-3">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Attention Trend</h3>
+                        <span class="chart-badge" id="chartStatus">
+                            ⏸️ Paused
+                        </span>
+                    </div>
+                    <canvas id="chart"></canvas>
+                </div>
 
-<canvas id="chart"></canvas>
+            </div>
+        </div>
 
-</div>
+    </div>
 
-</div>
+    <!-- ========== SCRIPTS ========== -->
 
-</div>
+    <script>
 
-</div>
+        // ---------- SIDEBAR TOGGLE ----------
 
-</div>
+        function toggleSidebar() {
+            const sidebar = document.getElementById("sidebar");
+            const overlay = document.getElementById("sidebarOverlay");
+            const button = document.querySelector(".menu-btn");
 
-<script>
+            if (sidebar && overlay && button) {
+                sidebar.classList.toggle("active");
+                overlay.classList.toggle("active");
+                button.classList.toggle("shift");
+            }
+        }
 
-function toggleSidebar(){
 
-const sidebar = document.getElementById("sidebar")
-const content = document.querySelector(".content")
-const button = document.querySelector(".menu-btn")
+        // ---------- SOCKET CONNECTION ----------
 
-sidebar.classList.toggle("active")
-content.classList.toggle("shift")
-button.classList.toggle("shift")
+        var socket = io();
 
-}
+        function startSession() {
+            socket.emit("start_monitoring");
 
-var socket = io()
+            const liveVideo = document.getElementById("liveVideo");
+            const videoPlaceholder = document.getElementById("videoPlaceholder");
+            const camStatus = document.getElementById("camStatus");
 
-function startSession(){
-socket.emit("start_monitoring")
-}
+            if(liveVideo && videoPlaceholder) {
+                // To avoid browser caching the MJPEG stream, append timestamp
+                liveVideo.src = "/video_feed?_=" + new Date().getTime();
+                liveVideo.style.display = "block";
+                videoPlaceholder.style.display = "none";
+                if(camStatus) {
+                    camStatus.innerHTML = "🔴 Live";
+                    camStatus.style.background = "rgba(239,68,68,0.1)";
+                    camStatus.style.color = "#ef4444";
+                }
+            }
 
-socket.on("attention_update", function(data){
+            const btn = document.getElementById("startMonitoringBtn");
+            btn.innerHTML = "📡 Monitoring Active";
+            btn.classList.add("monitoring-active");
+            btn.disabled = true;
 
-document.getElementById("score").innerText =
-data.score + "%"
+            const stopBtn = document.getElementById("stopMonitoringBtn");
+            if (stopBtn) stopBtn.style.display = "inline-block";
 
-addData(data.score)
+            const badge = document.getElementById("chartStatus");
+            if (badge) {
+                badge.innerHTML = "🔴 Live";
+                badge.style.background = "rgba(239,68,68,0.1)";
+                badge.style.color = "#ef4444";
+            }
+        }
 
-})
+        function stopSession() {
+            socket.emit("stop_monitoring");
 
-var ctx = document.getElementById("chart")
+            const liveVideo = document.getElementById("liveVideo");
+            const videoPlaceholder = document.getElementById("videoPlaceholder");
+            const camStatus = document.getElementById("camStatus");
 
-var chart = new Chart(ctx, {
-type: "line",
-data: {
-labels: [],
-datasets: [{
-label: "Attention Score",
-data: [],
-borderColor: "#2563eb",
-tension:0.3
-}]
-},
-options:{
-scales:{
-y:{
-min:0,
-max:100
-}
-}
-}
-})
+            if(liveVideo && videoPlaceholder) {
+                liveVideo.src = "";
+                liveVideo.style.display = "none";
+                videoPlaceholder.style.display = "flex";
+                if(camStatus) {
+                    camStatus.innerHTML = "Offline";
+                    camStatus.style.background = "#e2e8f0";
+                    camStatus.style.color = "#64748b";
+                }
+            }
 
-function addData(score){
+            const btn = document.getElementById("startMonitoringBtn");
+            btn.innerHTML = "🚀 Start AI Monitoring";
+            btn.classList.remove("monitoring-active");
+            btn.disabled = false;
 
-chart.data.labels.push("t")
+            const stopBtn = document.getElementById("stopMonitoringBtn");
+            if (stopBtn) stopBtn.style.display = "none";
 
-chart.data.datasets[0].data.push(score)
+            const badge = document.getElementById("chartStatus");
+            if (badge) {
+                badge.innerHTML = "⏸️ Paused";
+                badge.style.background = "";
+                badge.style.color = "";
+            }
+        }
 
-chart.update()
+        socket.on("attention_update", function (data) {
+            const scoreEl = document.getElementById("score");
+            const indicatorEl = document.getElementById("scoreIndicator");
+            const faceCountEl = document.getElementById("sessionFaceCount");
+            const faceIndicatorEl = document.getElementById("faceIndicator");
 
-}
+            // Update score
+            if (scoreEl) {
+                scoreEl.innerText = data.score + "%";
 
-setInterval(function(){
-socket.emit("request_data")
-},2000)
+                if (data.score >= 80) {
+                    scoreEl.style.color = "#22c55e";
+                } else if (data.score >= 50) {
+                    scoreEl.style.color = "#f59e0b";
+                } else {
+                    scoreEl.style.color = "#ef4444";
+                }
+            }
 
-</script>
+            // Update score indicator
+            if (indicatorEl) {
+                if (data.score >= 80) {
+                    indicatorEl.className = "score-indicator score-high";
+                    indicatorEl.innerHTML = "<span>●</span> High Attention";
+                } else if (data.score >= 50) {
+                    indicatorEl.className = "score-indicator score-medium";
+                    indicatorEl.innerHTML = "<span>●</span> Moderate Attention";
+                } else {
+                    indicatorEl.className = "score-indicator score-low";
+                    indicatorEl.innerHTML = "<span>●</span> Low Attention";
+                }
+            }
+
+            // Update face count
+            if (faceCountEl) {
+                faceCountEl.innerText = data.face_count;
+            }
+
+            // Update face indicator
+            if (faceIndicatorEl) {
+                if (data.face_count > 1) {
+                    faceIndicatorEl.className = "score-indicator score-high";
+                    faceIndicatorEl.innerHTML = "<span>👥</span> " + data.face_count + " students detected";
+                } else if (data.face_count === 1) {
+                    faceIndicatorEl.className = "score-indicator score-medium";
+                    faceIndicatorEl.innerHTML = "<span>👤</span> 1 student detected";
+                } else {
+                    faceIndicatorEl.className = "score-indicator score-low";
+                    faceIndicatorEl.innerHTML = "<span>👥</span> No faces detected";
+                }
+            }
+
+            addData(data.score);
+        });
+
+
+        // ---------- CHART.JS SETUP ----------
+
+        var ctx = document.getElementById("chart");
+
+        var chart = new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: [],
+                datasets: [{
+                    label: "Attention Score",
+                    data: [],
+                    borderColor: "#C8F31D",
+                    backgroundColor: "rgba(200,243,29,0.08)",
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: "#C8F31D",
+                    pointBorderColor: "#111",
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 7
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        grid: {
+                            color: "rgba(0,0,0,0.04)"
+                        },
+                        ticks: {
+                            font: { family: "'Inter', sans-serif", size: 12 },
+                            color: "#94a3b8",
+                            callback: function (v) { return v + "%"; }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: { family: "'Inter', sans-serif", size: 11 },
+                            color: "#94a3b8",
+                            maxTicksLimit: 12
+                        }
+                    }
+                }
+            }
+        });
+
+        var frameCount = 0;
+
+        function addData(score) {
+            frameCount++;
+            chart.data.labels.push("t" + frameCount);
+            chart.data.datasets[0].data.push(score);
+
+            if (chart.data.labels.length > 30) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+
+            chart.update("none");
+        }
+
+        // Request data every 2 seconds
+        setInterval(function () {
+            socket.emit("request_data");
+        }, 2000);
+
+    </script>
 
 </body>
 

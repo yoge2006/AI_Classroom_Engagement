@@ -1,30 +1,101 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>FocusTrack AI</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet"
-href="{{ url_for('static', filename='css/style.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusTrack AI — Sign In</title>
+    <meta name="description" content="FocusTrack AI — AI-powered classroom engagement monitoring. Sign in to track student attention in real time.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
 </head>
 
 <body>
 
-<div class="login-box">
+<div class="login-page">
 
-<h2>Teacher Login</h2>
+    <!-- ========== LEFT: LIME BRAND HERO ========== -->
 
-<form method="POST">
+    <div class="login-hero">
 
-<input type="email" name="email" placeholder="Email" required>
+        <!-- Decorative Floating Shapes -->
+        <div class="shape shape-circle animate-float-slow" style="width:24px;height:24px;top:15%;left:8%;"></div>
+        <div class="shape shape-cross animate-float-medium" style="top:20%;left:4%;">✕</div>
+        <div class="shape shape-dot animate-float-fast" style="top:60%;left:6%;"></div>
+        <div class="shape shape-circle animate-float-medium" style="width:18px;height:18px;bottom:30%;left:12%;"></div>
+        <div class="shape shape-cross animate-float-slow" style="bottom:15%;left:30%;">✕</div>
+        <div class="shape shape-dot animate-float-fast" style="top:12%;right:35%;"></div>
+        <div class="shape shape-circle-filled animate-float-medium" style="width:12px;height:12px;top:25%;right:20%;"></div>
+        <div class="shape shape-line animate-spin-slow" style="top:40%;right:15%;"></div>
+        <div class="shape shape-line animate-spin-slow" style="top:35%;right:25%;transform:rotate(45deg);"></div>
+        <div class="shape shape-line animate-spin-slow" style="bottom:40%;right:10%;transform:rotate(-30deg);"></div>
+        <div class="shape shape-circle animate-float-slow" style="width:30px;height:30px;top:10%;right:10%;"></div>
+        <div class="shape shape-dot animate-float-medium" style="bottom:20%;right:20%;"></div>
+        <div class="shape shape-circle animate-float-fast" style="width:14px;height:14px;bottom:10%;left:50%;"></div>
+        <div class="shape shape-dot" style="top:50%;left:25%;width:6px;height:6px;"></div>
 
-<input type="password" name="password" placeholder="Password" required>
+        <!-- Brand Content -->
+        <div class="fade-in-up">
+            <h1 class="brand-name">FocusTrack AI</h1>
+        </div>
 
-<button type="submit">Login</button>
+        <div class="fade-in-up fade-in-up-delay-1">
+            <h2 class="brand-tagline">Smarter classrooms through real-time AI insight</h2>
+        </div>
 
-</form>
+        <div class="fade-in-up fade-in-up-delay-2">
+            <p class="brand-description">
+                Monitor student engagement in real time using AI-powered attention detection. Get instant feedback and downloadable session reports.
+            </p>
+        </div>
+
+        <div class="fade-in-up fade-in-up-delay-3">
+            <a href="#login-form" class="hero-cta">
+                Get started →
+            </a>
+        </div>
+
+        <!-- Hero Illustration -->
+        <div class="hero-illustration">
+            <div class="heart-container">
+                <div class="hero-illustration-emoji" style="font-size:120px;animation:float-slow 5s ease-in-out infinite;">🎯</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ========== RIGHT: LOGIN FORM PANEL ========== -->
+
+    <div class="login-form-panel">
+
+        <div class="login-card" id="login-form">
+
+            <h2 class="login-title">Welcome back</h2>
+            <p class="login-subtitle">Sign in to your teacher dashboard</p>
+
+            <form method="POST" autocomplete="on">
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" placeholder="teacher@edu.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                </div>
+
+                <button type="submit" class="login-btn">Sign In</button>
+
+            </form>
+
+            <p class="login-footer">FocusTrack AI — AI Classroom Engagement</p>
+
+        </div>
+
+    </div>
 
 </div>
 
 </body>
-<script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </html>
